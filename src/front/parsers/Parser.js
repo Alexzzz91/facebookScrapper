@@ -5,12 +5,18 @@ if (window.navigator.languages) {
     language = window.navigator.userLanguage || window.navigator.language;
 }
 
+const optionsFull = {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+};
+
 const options = {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
-  // hour: 'numeric',
-  // minute: 'numeric',
 };
 
 class Parser extends CommonParser{
@@ -40,13 +46,13 @@ class Parser extends CommonParser{
         const intervalId = setInterval(() => {
           window.scrollTo(0,document.body.scrollHeight);
           allEntites = this.getElementsByXPath(".//*[contains(@id, 'member_requests_pagelet')]//div/div/ul[contains(@class, 'uiList')]/li[not(@class)]/div[contains(@direction, 'left') or contains(@direction, 'right')]", document)
-          //if(allEntites.length === this.state.allEntitesCount) {
+          if(allEntites.length === this.state.allEntitesCount) {
             clearTimeout(intervalId);
             if(!this.state.params.entities || this.state.params.entities == 'all'){
               resolve(this.getList(".//*[contains(@id, 'member_requests_pagelet')]//div/div/ul[contains(@class, 'uiList')]/li[not(@class)]/div[contains(@direction, 'left') or contains(@direction, 'right')]", document));
             }
             resolve(this.getList(".//*[contains(@id, 'member_requests_pagelet')]//div/div/ul[contains(@class, 'uiList')]/li[not(@class)]/div[contains(@direction, 'left') or contains(@direction, 'right')]/div/div/div/div[last()]/ul/li[not(i)]/ancestor::li[not(@class)]/div", document));
-          //};
+          };
         }, 1500)
       });
     }
@@ -142,43 +148,63 @@ class Parser extends CommonParser{
               record.setJoinedFacebookOn(tryTime);
             }
 
-            const city = document.evaluate("normalize-space(//span/a[contains(@href, 'facebook.com/pages/')]/text())", additionalDom, null, XPathResult.STRING_TYPE, null).stringValue;
+        //     const city = document.evaluate("normalize-space(//span/a[contains(@href, 'facebook.com/pages/')]/text())", additionalDom, null, XPathResult.STRING_TYPE, null).stringValue;
 
-            if (!!city) {
-              record.setFrom(city);
-              record.setLivesIn(city);
-            }
+        //     if (!!city) {
+        //       record.setFrom(city);
+        //       record.setLivesIn(city);
+        //     }
 
-            const work = document.evaluate("normalize-space(//span/a[not(contains(@href, 'facebook.com/pages/'))]/text())", additionalDom, null, XPathResult.STRING_TYPE, null).stringValue;
+        //     const work = document.evaluate("normalize-space(//span/a[not(contains(@href, 'facebook.com/pages/'))]/text())", additionalDom, null, XPathResult.STRING_TYPE, null).stringValue;
 
-            if (!!work) {
-              record.setWorksAt(work);
-            }
+        //     if (!!work) {
+        //       record.setWorksAt(work);
+        //     }
 
-            if (idx === additionalRaw.length - 1){
-              const studiedAt = document.evaluate("normalize-space(//span/a[not(contains(@href, 'facebook.com/pages/'))]/text())", dom, null, XPathResult.STRING_TYPE, null).stringValue;
+        //     if (idx === additionalRaw.length - 1){
+        //       const studiedAt = document.evaluate("normalize-space(//span/a[not(contains(@href, 'facebook.com/pages/'))]/text())", dom, null, XPathResult.STRING_TYPE, null).stringValue;
 
-              if (!!studiedAt) {
-                record.setStudiedAt(studiedAt);
-              }
-            }
+        //       if (!!studiedAt) {
+        //         record.setStudiedAt(studiedAt);
+        //       }
+        //     }
         });
 
         let requestTime = document.evaluate("normalize-space(//span/*[contains(@class, 'livetimestamp') or contains(@data-utime, number() > 1199134800)]/text())", dom, null, XPathResult.STRING_TYPE, null).stringValue;
 
         if (!!requestTime && !requestTime.match(/(\s|\,)\d{4}/)) {
-          if (requestTime.match(/\w{1,2}(\s)?(hour|ч|h|часа)|(час|hour)/)){
+          let set = false;
+          if (requestTime.match(/\w{1,2}(\s)?(hour|ч|h|час|שעה)/)){
             let hours = requestTime.replace(/\D/g, '');
             if (!hours) {
               hours = 1;
             }
             var d = new Date();
-            requestTime = new Date(d.setHours(d.getHours() - hours));
-            requestTime = requestTime.toLocaleString(language, options);
+            requestTime = new Date(d.setHours(d.getHours() - parseInt(hours)));
+            requestTime = requestTime.toLocaleString(language, optionsFull);
+            set = true;
           }
-          if (requestTime.match(/\w{1,2}(\s)(min|m|м)/)){
+          if (!set && requestTime.match(/\w{1,2}(\s)(min|m|м)/)){
+            let minutes = requestTime.replace(/\D/g, '');
+            if (!minutes) {
+              minutes = 0;
+            }
             var d = new Date();
-            requestTime = d.toLocaleString(language, options);
+            requestTime = new Date(d.setMinutes(d.getMinutes() - parseInt(minutes)));
+            requestTime = d.toLocaleString(language, optionsFull);
+          }
+        } else {
+          for (let t of time) {
+            Object.keys(t).forEach(key => {
+              if (requestTime.match(new RegExp(t[key], 'i'))){
+                const newRegexp = new RegExp(`(\\s)?((${t[key]})?(\\D+))\\s`, 'igm');
+                const prepairKey = key.length == 2 ? key : '0'+key;
+                const newdate = requestTime.replace(newRegexp, ` `);
+                requestTime = new Date(prepairKey+' '+newdate.replace(/[^\w|^\s]./, ''));
+                requestTime = requestTime.toLocaleString(language, options);
+                return;
+              }
+            });
           }
         }
 

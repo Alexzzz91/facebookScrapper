@@ -53,6 +53,10 @@ function Record() {
   this.setRequestTime = function (requestTime) {
     this.requestTime = requestTime;
   };
+
+  this.setScrapeTime = function (scrapeTime) {
+    this.scrapeTime = scrapeTime;
+  };
 }
 
 Record.prototype.toObject = function () {
@@ -65,11 +69,12 @@ Record.prototype.toObject = function () {
     //avatarImage: this.avatarImage || '',
     answers: this.answers || Array(3).fill(''),
     joinedFacebookOn: this.joinedFacebookOn || '',
-    from: this.from || '',
-    livesIn: this.livesIn || '',
-    worksAt: this.worksAt || '',
-    wentTo: this.wentTo || '',
-    studiedAt: this.studiedAt || '',
+    // from: this.from || '',
+    // livesIn: this.livesIn || '',
+    // worksAt: this.worksAt || '',
+    // wentTo: this.wentTo || '',
+    // studiedAt: this.studiedAt || '',
     requestTime: this.requestTime || '',
+    scrapeTime: this.scrapeTime || new Date().toLocaleString(language, options),
   };
 };
